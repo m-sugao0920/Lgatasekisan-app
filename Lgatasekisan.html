@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>擁壁 数量計算（完全版：鉄筋8系統）</title>
+  <style>
+    :root{
+      --blue:#0070C0;
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --text:#1b1f24;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --shadow:0 10px 24px rgba(0,0,0,.07);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header{
+      background:linear-gradient(135deg,var(--blue),#2b8ae2);
+      color:white;
+      padding:18px 16px;
+    }
+    header .wrap{max-width:1180px;margin:0 auto;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    header h1{font-size:18px;margin:0}
+    header .sub{font-size:12px;opacity:.95}
+    main{max-width:1200px;margin:16px auto;padding:0 16px 28px}
+    .grid{display:grid;grid-template-columns: 360px 340px 1fr;gap:14px}
+    @media (max-width: 980px){ .grid{grid-template-columns: 1fr;} }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card h2{
+      font-size:14px;
+      margin:0;
+      padding:12px 14px;
+      border-bottom:1px solid var(--border);
+      display:flex;align-items:center;gap:8px;
+    }
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--blue);display:inline-block}
+    .card .body{padding:14px}
+
+    .row{display:grid;grid-template-columns: 1fr 1fr;gap:10px}
+    .row3{display:grid;grid-template-columns: 1fr 1fr 1fr;gap:10px}
+    .row4{display:grid;grid-template-columns: 1.2fr 1fr 1fr;gap:10px}
+
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+    input, select{
+      width:100%;
+      padding:10px 10px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      outline:none;
+      font-size:14px;
+      background:white;
+    }
+    input:focus, select:focus{border-color:rgba(0,112,192,.55); box-shadow:0 0 0 3px rgba(0,112,192,.15)}
+
+    /* number入力の矢印（スピン）を完全に非表示 */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    button{
+      border:none;
+      border-radius:999px;
+      padding:10px 14px;
+      cursor:pointer;
+      font-size:13px;
+      font-weight:700;
+    }
+    .primary{background:var(--blue); color:white}
+    .ghost{background:#eef6ff; color:var(--blue)}
+    .danger{background:#fff1f2; color:#b42318}
+
+    .note{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.55;
+    }
+    .hr{height:1px;background:var(--border);margin:12px 0;}
+
+    table{table-layout:fixed;
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:white;
+    }
+    th, td{
+      padding:10px 10px;
+      border-bottom:1px solid var(--border);
+      vertical-align:top;
+      font-size:13px;
+    }
+    th{background:#f2f7ff;color:#0f172a;text-align:left;font-weight:800}
+    tr:last-child td{border-bottom:none}
+    /* 結果表の折り返し抑制（項目が4行になるのを防ぐ） */
+    table th:first-child, table td:first-child{white-space:nowrap;}
+
+    .muted{color:var(--muted)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+
+    .kpi{
+      display:grid;grid-template-columns: repeat(3, 1fr); gap:10px;
+    }
+    @media (max-width: 980px){ .kpi{grid-template-columns: 1fr;} }
+    .kpi .box{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      background:#fbfdff;
+    }
+    .kpi .t{font-size:12px;color:var(--muted)}
+    .kpi .v{font-size:18px;font-weight:900;margin-top:4px}
+    .kpi .u{font-size:12px;color:var(--muted);margin-left:6px}
+
+    .sectionTitle{
+      margin:10px 0 8px;
+      font-size:12px;
+      font-weight:900;
+      color:#0f172a;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .pill{
+      display:inline-block;
+      padding:2px 10px;
+      border-radius:999px;
+      background:#eef6ff;
+      color:var(--blue);
+      font-size:12px;
+      font-weight:800;
+    }
+    .rebar-area input, .rebar-area select{font-size:13px;padding:8px 10px}
+    .rebar-head{
+      display:grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+      color:var(--muted);
+      font-weight:800;
+      font-size:12px;
+    }
+  
+    /* --- Illustrations --- */
+    .illust-box{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px;
+      background:#fafafa;
+      margin-bottom:10px;
+    }
+    .illust-box.rebar{ background:#fffdf8; }
+    .illust-svg{ width:100%; height:auto; display:block; overflow:visible; }
+    .dimText{ fill:#333; font-size:20px; font-weight:600; transition:fill .15s ease, font-size .15s ease; }
+    .dimText.active{ fill:#d32f2f; font-weight:800; font-size:28px; paint-order:stroke fill; stroke:#fff; stroke-width:4px; }
+
+  
+/* 鉄筋フォーカス時：図面側の該当鉄筋を赤く強調 */
+.rb-active .rb{ stroke:#d60000 !important; }
+
+
+/* 鉄筋：非強調線（例：底部の水平線など）は赤くしない */
+.rb-muted{ stroke:#6b7280; stroke-width:3; fill:none; opacity:0.65; }
+
+
+
+.rb-active .rb-dot{ fill:#d60000 !important; }
+
+
+/* 基礎縦下筋（下端主筋：直線）通常は濃い色、フォーカス時に赤 */
+.rb-base-main{
+  stroke:#3b2f2a;
+  stroke-width:5;
+  fill:none;
+  opacity:1 !important;
+}
+.rb-active .rb-base-main{
+  stroke:#d60000 !important;
+  opacity:1 !important;
+}
+
+
+
+/* 基礎縦下筋だけは「ぼやけて薄く見える」対策としてフィルタを無効化し、赤を強制 */
+#rb_sb_main.rb-active{ filter:none !important; }
+#rb_sb_main.rb-active .rb-base-main{
+  stroke:#e53935 !important; /* 少し薄い赤 */
+  opacity:1 !important;
+  stroke-width:5 !important;
+}
+
+.rb-active{ filter:url(#rebarGlow); }
+
+
+/* 裏側なし（シングル）トグル */
+.toggleRow{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:8px 0 6px;
+  flex-wrap:wrap;
+}
+.toggleLabel{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-weight:700;
+  user-select:none;
+}
+.toggleLabel input{ transform: translateY(1px); }
+.toggleHint{
+  font-size:12px;
+  opacity:0.85;
+}
+.inputDisabled{
+  opacity:0.55;
+}
+
+
+
+/* 裏側なし（シングル）トグル：1行で収める */
+.toggleRow{
+  flex-wrap:nowrap;
+}
+.toggleHint{
+  white-space:nowrap;
+  font-size:11px;
+}
+
+
+/* 鉄筋の名前の文字を小さくし、縦方向を詰める */
+.rebar-area .row4 > div:first-child,
+.rebar-area .row3 > div:first-child{
+  font-size:13px;
+  line-height:1.2;
+  padding-top:0 !important;
+  display:flex;
+  align-items:center;
+}
+.rebar-area .row4,
+.rebar-area .row3{
+  margin-top:4px;
+}
+
+
+/* 径(D)・ピッチ(@)の下にある単位表示を非表示にして縦詰め */
+.rebar-area .unit,
+.rebar-area .unitD,
+.rebar-area .unitP,
+.rebar-area .unitAt{
+  display:none !important;
+}
+
+
+/* ピッチ入力の @ ラベルを非表示 */
+.rebar-area label.muted.unitAt{ display:none !important; }
+
+/* 裏側なし（シングル）行が下と重ならないように余白調整 */
+.toggleRow{
+  margin:6px 0 10px;
+  padding:0;
+  line-height:1.1;
+}
+.toggleLabel{ line-height:1.1; }
+.toggleHint{ line-height:1.1; }
+
+
+/* 裏側なし（シングル）を必ず1行に収め、下と重ならないようにする最終調整 */
+.toggleRow{
+  display:flex;
+  align-items:center;
+  flex-wrap:nowrap;
+  gap:8px;
+  margin:4px 0 14px; /* 下に余白を確保 */
+  min-height:22px;   /* 行の高さを固定 */
+}
+.toggleLabel{
+  font-size:13px;
+  line-height:1;
+  white-space:nowrap;
+}
+.toggleLabel input{
+  width:14px;
+  height:14px;
+}
+.toggleHint{
+  font-size:10px;
+  white-space:nowrap;
+  line-height:1;
+}
+
+
+/* 裏側なし（シングル）の説明文：右端が切れないように */
+.toggleHint{
+  font-size:9px !important;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:100%;
+}
+
+</style>
+</head>
+
+<body>
+<header>
+  <div class="wrap">
+    <div>
+      <h1>擁壁 数量計算（完全版：鉄筋8系統）</h1>
+      <div class="sub">土工／地業／コンクリ／型枠／鉄筋（8系統）を自動算出</div>
+    </div>
+    <div class="sub">
+      <span class="pill">D=H1+H2+H3+H4（天端→砕石下端）</span>
+      <span class="pill">e=0.25D（固定）</span>
+      <span class="pill">掘削A=B×D+0.5mD²（背面のみ）</span>
+      <span class="pill">m=0.5固定</span>
+      <span class="pill">型枠=2(H1+H2)L（壁前後のみ）</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+
+    <!-- Diagram -->
+    <section class="card">
+      <h2><span class="dot"></span>断面</h2>
+      <div class="body">
+        <div class="illust-box">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 950" class="illust-svg">
+  <defs>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="4" stdDeviation="3"
+                    flood-color="#000" flood-opacity="0.18"/>
+    </filter>
+
+    <linearGradient id="gradWall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#efe6d6"/>
+      <stop offset="1" stop-color="#d8c8ae"/>
+    </linearGradient>
+
+    <linearGradient id="gradLean" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f6f6f6"/>
+      <stop offset="1" stop-color="#dcdcdc"/>
+    </linearGradient>
+
+    <pattern id="stoneDots" patternUnits="userSpaceOnUse" width="34" height="26">
+      <circle cx="6"  cy="6"  r="2.2" fill="#8b6b3f"/>
+      <circle cx="17" cy="4"  r="1.8" fill="#7a5a32"/>
+      <circle cx="29" cy="8"  r="2.4" fill="#9a7b4f"/>
+      <circle cx="9"  cy="16" r="2.6" fill="#6e512c"/>
+      <circle cx="22" cy="15" r="2.0" fill="#84663a"/>
+    </pattern>
+
+    <linearGradient id="gradStoneOverlay" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .outline { stroke:#3a3a3a; stroke-width:2.6; stroke-linejoin:round; }
+    .subline { stroke:#666; stroke-width:1.9; stroke-linejoin:round; }
+    .dim { fill:none; stroke:#000; stroke-width:1; }
+    .label { font-family:"Yu Gothic","Meiryo",sans-serif; fill:#000; font-size:28px; }
+    .r4 { rx:6; ry:6; }
+  </style>
+
+  <!-- ===== 躯体（L字一体） ===== -->
+  <path
+    d="M 320 110
+       L 410 110
+       L 410 540
+       L 640 540
+       L 640 635
+       L 320 635
+       Z"
+    fill="url(#gradWall)"
+    class="outline"
+    filter="url(#softShadow)"
+  />
+
+  <!-- 均し -->
+  <rect x="300" y="635" width="360" height="32"
+        fill="url(#gradLean)" class="subline r4"
+        filter="url(#softShadow)"/>
+
+  <!-- 砕石 -->
+  <rect x="300" y="667" width="360" height="72"
+        fill="url(#stoneDots)" class="subline r4"
+        filter="url(#softShadow)"/>
+  <rect x="300" y="667" width="360" height="72"
+        fill="url(#gradStoneOverlay)" class="r4" opacity="0.9"/>
+
+  <!-- ===== W寸法 ===== -->
+  <!-- W1：補助線を5mm下げ、文字を線の上へ -->
+  <line x1="320" y1="30" x2="410" y2="30" class="dim"/>
+  <line x1="320" y1="35" x2="320" y2="65" class="dim"/>
+  <line x1="410" y1="35" x2="410" y2="65" class="dim"/>
+  <text x="340" y="18" class="label dimText dim-w1">W1</text>
+
+  <!-- W2 -->
+  <line x1="320" y1="525" x2="410" y2="525" class="dim"/>
+  <line x1="320" y1="525" x2="320" y2="540" class="dim"/>
+  <line x1="410" y1="525" x2="410" y2="540" class="dim"/>
+  <text x="425" y="500" class="label dimText dim-w2">W2</text>
+
+  <!-- W3 -->
+  <line x1="320" y1="800" x2="640" y2="800" class="dim"/>
+  <line x1="320" y1="800" x2="320" y2="770" class="dim"/>
+  <line x1="640" y1="800" x2="640" y2="770" class="dim"/>
+  <text x="450" y="855" class="label dimText dim-w3">W3</text>
+
+  <!-- W4 -->
+  <line x1="300" y1="860" x2="660" y2="860" class="dim"/>
+  <line x1="300" y1="860" x2="300" y2="830" class="dim"/>
+  <line x1="660" y1="860" x2="660" y2="830" class="dim"/>
+  <text x="450" y="920" class="label dimText dim-w4">W4</text>
+
+  <!-- ===== H寸法 ===== -->
+  <line x1="240" y1="110" x2="240" y2="540" class="dim"/>
+  <line x1="240" y1="110" x2="270" y2="110" class="dim"/>
+  <line x1="240" y1="540" x2="270" y2="540" class="dim"/>
+  <text x="155" y="335" class="label dimText dim-h1">H1</text>
+
+  <line x1="240" y1="540" x2="240" y2="635" class="dim"/>
+  <line x1="240" y1="635" x2="270" y2="635" class="dim"/>
+  <text x="155" y="595" class="label dimText dim-h2">H2</text>
+
+  <line x1="240" y1="635" x2="240" y2="667" class="dim"/>
+  <line x1="240" y1="667" x2="270" y2="667" class="dim"/>
+  <text x="155" y="662" class="label dimText dim-h3">H3</text>
+
+  <line x1="240" y1="667" x2="240" y2="739" class="dim"/>
+  <line x1="240" y1="739" x2="270" y2="739" class="dim"/>
+  <text x="155" y="710" class="label dimText dim-h4">H4</text>
+
+  <line x1="690" y1="540" x2="690" y2="635" class="dim"/>
+  <line x1="670" y1="540" x2="690" y2="540" class="dim"/>
+  <line x1="670" y1="635" x2="690" y2="635" class="dim"/>
+  <text x="705" y="595" class="label dimText dim-h5">H5</text>
+
+  <!-- D（天端〜砕石下端） -->
+  <line x1="120" y1="110" x2="120" y2="739" class="dim"/>
+  <line x1="120" y1="110" x2="150" y2="110" class="dim"/>
+  <line x1="120" y1="739" x2="150" y2="739" class="dim"/>
+  <text x="75" y="450" class="label dimText dim-d"><span class="unitD" style="display:none">D</span></text>
+</svg>
+        </div>
+        <div class="illust-box rebar">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -140 1100 860" class="illust-svg" aria-label="鉄筋配置イラスト">
+  <defs>
+    <linearGradient id="gradWallRebar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#efe6d6"/>
+      <stop offset="1" stop-color="#d8c8ae"/>
+    </linearGradient>
+    <filter id="rebarGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#2563eb" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <style>
+    .c-outline{fill:url(#gradWallRebar);stroke:#3a3a3a;stroke-width:2.2;stroke-linejoin:round}
+    .rb{fill:none;stroke:#3b2f2a;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+    .rb.thin{stroke-width:4}
+    .rb-dot{fill:#3b2f2a}
+  </style>
+
+  <!-- 躯体 -->
+  <path class="c-outline"
+        d="M 320 -90
+           L 420 -90
+           L 420 420
+           L 740 420
+           L 740 520
+           L 320 520
+           Z"/>
+
+  <g id="rb_vf" class="rbgrp" data-label="壁 縦筋（前筋）">
+    <!-- 立ち上がり 前筋（縦だけ赤） -->
+    <path class="rb" d="M 343 -60 L 343 495"/>
+    <!-- 下端の水平線は常に灰色（赤くしない） -->
+    <path class="rb-muted" d="M 343 495 L 708 495"/>
+  </g>
+
+  <g id="rb_vbu" class="rbgrp" data-label="壁 縦筋（裏筋）">
+    <!-- 立ち上がり 裏筋 -->
+    <path class="rb thin" d="M 405 -60 L 405 470 L 480 470"/>
+  </g>
+
+  <!-- 立ち上がり 横筋（前後・丸） -->
+  <g id="rb_hf_hb" class="rbgrp" data-label="壁 横筋（前後）">
+  <g id="rb_hf" class="rbgrp-part">
+    <!-- 前横筋 -->
+    <circle class="rb-dot" cx="353" cy="-40" r="5"/>
+    <circle class="rb-dot" cx="353" cy="5"   r="5"/>
+    <circle class="rb-dot" cx="353" cy="50"  r="5"/>
+    <circle class="rb-dot" cx="353" cy="100" r="5"/>
+    <circle class="rb-dot" cx="353" cy="150" r="5"/>
+    <circle class="rb-dot" cx="353" cy="200" r="5"/>
+    <circle class="rb-dot" cx="353" cy="250" r="5"/>
+    <circle class="rb-dot" cx="353" cy="300" r="5"/>
+    <circle class="rb-dot" cx="353" cy="350" r="5"/>
+    <circle class="rb-dot" cx="353" cy="400" r="5"/>
+  </g>
+
+  <g id="rb_hb" class="rbgrp-part">
+    <!-- 後横筋 -->
+    <circle class="rb-dot" cx="395" cy="-40" r="5"/>
+    <circle class="rb-dot" cx="395" cy="5"   r="5"/>
+    <circle class="rb-dot" cx="395" cy="50"  r="5"/>
+    <circle class="rb-dot" cx="395" cy="100" r="5"/>
+    <circle class="rb-dot" cx="395" cy="150" r="5"/>
+    <circle class="rb-dot" cx="395" cy="200" r="5"/>
+    <circle class="rb-dot" cx="395" cy="250" r="5"/>
+    <circle class="rb-dot" cx="395" cy="300" r="5"/>
+    <circle class="rb-dot" cx="395" cy="350" r="5"/>
+    <circle class="rb-dot" cx="395" cy="400" r="5"/>
+  </g>
+
+  </g>
+
+  <g id="rb_st_top" class="rbgrp" data-label="底版 上端主筋（曲げ）">
+    <!-- 基礎 上筋（前筋手前で上に曲げ） -->
+    <path class="rb"
+          d="M 708 445
+             L 350 445
+             L 350 385"/>
+  </g>
+
+  <!-- 基礎 上横筋 -->
+  <g id="rb_st_dots" class="rbgrp" data-label="底版 上端 配力筋（丸）">
+    <circle class="rb-dot" cx="353" cy="451" r="5"/>
+    <circle class="rb-dot" cx="407" cy="451" r="5"/>
+    <circle class="rb-dot" cx="467" cy="451" r="5"/>
+    <circle class="rb-dot" cx="527" cy="451" r="5"/>
+    <circle class="rb-dot" cx="587" cy="451" r="5"/>
+    <circle class="rb-dot" cx="647" cy="451" r="5"/>
+    <circle class="rb-dot" cx="707" cy="451" r="5"/>
+  </g>
+
+  <!-- 基礎 下横筋 -->
+  <g id="rb_sb_dots" class="rbgrp" data-label="底版 下端 配力筋（丸）">
+    <circle class="rb-dot" cx="353" cy="485" r="5"/>
+    <circle class="rb-dot" cx="407" cy="485" r="5"/>
+    <circle class="rb-dot" cx="467" cy="485" r="5"/>
+    <circle class="rb-dot" cx="527" cy="485" r="5"/>
+    <circle class="rb-dot" cx="587" cy="485" r="5"/>
+    <circle class="rb-dot" cx="647" cy="485" r="5"/>
+    <circle class="rb-dot" cx="707" cy="485" r="5"/>
+  </g>
+
+  <!-- 底版 下端 主筋（直） ※通常は非表示。フォーカス時のみ赤表示 -->
+  <g id="rb_sb_main" class="rbgrp" data-label="底版 下端主筋（直）">
+    <path class="rb-base-main" d="M 708 495 L 350 495"/>
+  </g>
+
+</svg>
+        </div>
+        <div class="note" style="margin-top:6px;">※ 上：構造物断面／下：鉄筋配置（入力欄にフォーカスすると赤で強調）</div>
+        <div class="hr"></div>
+      </div>
+    </section>
+
+<!-- Inputs -->
+    <section class="card">
+      <h2><span class="dot"></span>入力</h2>
+      <div class="body">
+
+        <div class="sectionTitle">断面寸法（m）</div>
+        <div class="row">
+          <div><label>H1（立ち上がり高さ）</label><input id="H1" type="number" step="0.001" value="1.35" data-dim="dim-h1"></div>
+          <div><label>H2（基礎厚）</label><input id="H2" type="number" step="0.001" value="0.15" data-dim="dim-h2"></div>
+        </div>
+        <div class="row">
+          <div><label>H3（均しコンクリ厚）</label><input id="H3" type="number" step="0.001" value="0.05" data-dim="dim-h3"></div>
+          <div><label>H4（砕石厚）</label><input id="H4" type="number" step="0.001" value="0.15" data-dim="dim-h4"></div>
+        </div>
+        <div class="row">
+          <div><label>H5（参考：基礎端部厚）</label><input id="H5" type="number" step="0.001" value="0.15" data-dim="dim-h5"></div>
+          <div><label>W1（壁厚）</label><input id="W1" type="number" step="0.001" value="0.15" data-dim="dim-w1"></div>
+        </div>
+        <div class="row">
+          <div><label>W3（基礎幅）</label><input id="W3" type="number" step="0.001" value="1.0" data-dim="dim-w3"></div>
+          <div><label>W4（均し＋砕石の幅）</label><input id="W4" type="number" step="0.001" value="1.2" data-dim="dim-w4"></div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="sectionTitle">共通条件</div>
+        <div class="row3">
+          <div><label>延長 L（m）</label><input id="L" type="number" step="0.001" value="10"></div>
+          <div><label>e（余裕：自動）</label><input id="e" type="number" step="0.001" value="" readonly></div>
+          <div><label>法面 m</label><input id="m" type="number" step="0.001" value="0.5" readonly></div>
+        </div>
+
+        <div class="hr"></div>
+
+        <!-- Rebar area -->
+        <div class="rebar-area">
+          <div class="sectionTitle">鉄筋（8系統）</div>
+
+          <div class="toggleRow">
+            <label class="toggleLabel">
+              <input type="checkbox" id="toggleBackless">
+              裏側なし（シングル）
+            </label>
+            <span class="toggleHint">ONで裏側(縦後/横後/基礎横上/基礎縦上)を0＆入力不可</span>
+          </div>
+
+          <div class="note" style="margin-top:0;">
+            ・縦筋は <b>40d</b> を自動加算（d=鉄筋径mm、40d=0.04d m）。横筋は40d加算なし。<br>
+            ・端部+1、追加長はありません。
+          </div>
+
+          <div class="rebar-head">
+            <div>種類</div>
+            <div>径（D）</div>
+            <div>ピッチ（mm）</div>
+          </div>
+
+          <!-- 縦筋 4 -->
+          <div class="row4">
+            <div style="padding-top:10px;">立上り縦前筋</div>
+            <div>
+              <label class="muted"><span class="unitD" style="display:none">D</span></label>
+              <select id="d_vf">
+                <option value="10">D10</option><option value="13" selected>D13</option><option value="16">D16</option>
+                <option value="19">D19</option><option value="22">D22</option><option value="25">D25</option>
+              </select>
+            </div>
+            <div><label class="muted unitAt">@</label><input id="p_vf" type="number" step="1" value="200"></div>
+          </div>
+
+          <div class="row4">
+            <div style="padding-top:10px;">立上り縦後筋</div>
+            <div>
+              <label class="muted"><span class="unitD" style="display:none">D</span></label>
+              <select id="d_vr">
+                <option value="10">D10</option><option value="13" selected>D13</option><option value="16">D16</option>
+                <option value="19">D19</option><option value="22">D22</option><option value="25">D25</option>
+              </select>
+            </div>
+            <div><label class="muted unitAt">@</label><input id="p_vr" type="number" step="1" value="200"></div>
+          </div>
+
+          <div class="row4">
+            <div style="padding-top:10px;">基礎縦上筋</div>
+            <div>
+              <label class="muted"><span class="unitD" style="display:none">D</span></label>
+              <select id="d_bvt">
+                <option value="10">D10</option><option value="13" selected>D13</option><option value="16">D16</option>
+                <option value="19">D19</option><option value="22">D22</option><option value="25">D25</option>
+              </select>
+            </div>
+            <div><label class="muted unitAt">@</label><input id="p_bvt" type="number" step="1" value="200"></div>
+          </div>
+
+          <div class="row4">
+            <div style="padding-top:10px;">基礎縦下筋</div>
+            <div>
+              <label class="muted"><span class="unitD" style="display:none">D</span></label>
+              <select id="d_bvb">
+                <option value="10">D10</option><option value="13" selected>D13</option><option value="16">D16</option>
+                <option value="19">D19</option><option value="22">D22</option><option value="25">D25</option>
+              </select>
+            </div>
+            <div><label class="muted unitAt">@</label><input id="p_bvb" type="number" step="1" value="200"></div>
+          </div>
+
+          <!-- 縦筋と横筋の間：線は1本のみ -->
+          <div class="hr"></div>
+
+          <!-- 横筋 4（立上りと基礎の間の線は入れない） -->
+          <div class="row4">
+            <div style="padding-top:10px;">立上り横前筋</div>
+            <div>
+              <label class="muted"><span class="unitD" style="display:none">D</span></label>
+              <select id="d_hf">
+                <option value="10">D10</option><option value="13" selected>D13</option><option value="16">D16</option>
+                <option value="19">D19</option><option value="22">D22</option><option value="25">D25</option>
+              </select>
+            </div>
+            <div><label class="muted unitAt">@</label><input id="p_hf" type="number" step="1" value="200"></div>
+          </div>
+
+          <div class="row4">
+            <div style="padding-top:10px;">立上り横後筋</div>
+            <div>
+              <label class="muted"><span class="unitD" style="display:none">D</span></label>
+              <select id="d_hr">
+                <option value="10">D10</option><option value="13" selected>D13</option><option value="16">D16</option>
+                <option value="19">D19</option><option value="22">D22</option><option value="25">D25</option>
+              </select>
+            </div>
+            <div><label class="muted unitAt">@</label><input id="p_hr" type="number" step="1" value="200"></div>
+          </div>
+
+          <div class="row4">
+            <div style="padding-top:10px;">基礎横上筋</div>
+            <div>
+              <label class="muted"><span class="unitD" style="display:none">D</span></label>
+              <select id="d_bht">
+                <option value="10">D10</option><option value="13" selected>D13</option><option value="16">D16</option>
+                <option value="19">D19</option><option value="22">D22</option><option value="25">D25</option>
+              </select>
+            </div>
+            <div><label class="muted unitAt">@</label><input id="p_bht" type="number" step="1" value="200"></div>
+          </div>
+
+          <div class="row4">
+            <div style="padding-top:10px;">基礎横下筋</div>
+            <div>
+              <label class="muted"><span class="unitD" style="display:none">D</span></label>
+              <select id="d_bhb">
+                <option value="10">D10</option><option value="13" selected>D13</option><option value="16">D16</option>
+                <option value="19">D19</option><option value="22">D22</option><option value="25">D25</option>
+              </select>
+            </div>
+            <div><label class="muted unitAt">@</label><input id="p_bhb" type="number" step="1" value="200"></div>
+          </div>
+
+        </div><!-- /rebar-area -->
+
+        <div class="btns">
+          <button class="primary" id="calcBtn" type="button">計算</button>
+          <button class="ghost" id="fillSampleBtn" type="button">サンプル入力</button>
+          <button class="danger" id="resetBtn" type="button">入力リセット</button>
+        </div>
+
+        <div class="note">
+          <b>土工・型枠（確定ルール）</b><br>
+          ・D = H1+H2+H3+H4（天端→砕石下端）<br>
+          ・e = 0.25D（固定）<br>
+          ・B = W4 + 2e<br>
+          ・掘削断面 A = B×D + 0.5×m×D²（前面垂直、背面のみ法面）<br>
+          ・m = 0.5（固定）<br>
+          ・型枠 = 2(H1+H2)L（壁前後のみ）
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="card">
+      <h2><span class="dot"></span>結果</h2>
+      <div class="body">
+
+        <div class="kpi">
+          <div class="box">
+            <div class="t">掘削</div>
+            <div class="v"><span id="k_exc">0.000</span><span class="u">m³</span></div>
+            <div class="t muted mono">V={(W4+2e)D + 0.5mD²}L</div>
+          </div>
+          <div class="box">
+            <div class="t">擁壁コンクリート</div>
+            <div class="v"><span id="k_conc">0.000</span><span class="u">m³</span></div>
+            <div class="t muted mono">V={(W3(H2+H5)/2 + H1W1)}L</div>
+          </div>
+          <div class="box">
+            <div class="t">鉄筋合計</div>
+            <div class="v"><span id="k_rebar">0.00</span><span class="u">kg</span></div>
+            <div class="t muted mono">8系統の合計</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34%;">項目</th>
+                <th style="width:16%;">数量</th>
+                <th style="width:8%;">単位</th>
+                <th>メモ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>掘削</td><td class="mono" id="r_exc">0.0000</td><td>m³</td><td class="muted">D=H1+H2+H3+H4 / e=0.25D / B=W4+2e / A=B×D+0.5mD²（背面のみ）</td></tr>
+              <tr><td>床付け</td><td class="mono" id="r_bed">0.000</td><td>m²</td><td class="muted">B×L</td></tr>
+              <tr><td>砕石地業</td><td class="mono" id="r_stone">0.000</td><td>m³</td><td class="muted">W4×H4×L</td></tr>
+              <tr><td>均しコンクリート</td><td class="mono" id="r_blnd">0.000</td><td>m³</td><td class="muted">W4×H3×L</td></tr>
+              <tr><td>擁壁コンクリート</td><td class="mono" id="r_conc">0.000</td><td>m³</td><td class="muted">A=W3(H2+H5)/2 + H1W1 / V=A×L</td></tr>
+              <tr><td>型枠（擁壁）</td><td class="mono" id="r_form">0.000</td><td>m²</td><td class="muted">2(H1+H2)L（壁前後のみ）</td></tr>
+              <tr><td>埋戻し（現地土流用）</td><td class="mono" id="r_back">0.000</td><td>m³</td><td class="muted">掘削 −（砕石＋均し＋コンクリ）</td></tr>
+              <tr><td>残土処理（現地土流用）</td><td class="mono" id="r_spoil">0.000</td><td>m³</td><td class="muted">砕石＋均し＋コンクリ（置換体積）</td></tr>
+
+              <tr><th colspan="4">鉄筋（8系統：kg）</th></tr>
+              <tr><td>立上り縦前筋</td><td class="mono" id="kg_vf">0.00</td><td>kg</td><td class="muted">N×{(H1+H2)+40d}</td></tr>
+              <tr><td>立上り縦後筋</td><td class="mono" id="kg_vr">0.00</td><td>kg</td><td class="muted">N×{W3+40d}</td></tr>
+              <tr><td>基礎縦上筋</td><td class="mono" id="kg_bvt">0.00</td><td>kg</td><td class="muted">N×{W3+40d}</td></tr>
+              <tr><td>基礎縦下筋</td><td class="mono" id="kg_bvb">0.00</td><td>kg</td><td class="muted">N×{W3+40d}</td></tr>
+              <tr><td>立上り横前筋</td><td class="mono" id="kg_hf">0.00</td><td>kg</td><td class="muted">Nh×{L}（Nh=ceil((H1+H2)/p)+1）</td></tr>
+              <tr><td>立上り横後筋</td><td class="mono" id="kg_hr">0.00</td><td>kg</td><td class="muted">Nh×{L}（Nh=ceil((H1+H2)/p)+1）</td></tr>
+              <tr><td>基礎横上筋</td><td class="mono" id="kg_bht">0.00</td><td>kg</td><td class="muted">N×{W3}</td></tr>
+              <tr><td>基礎横下筋</td><td class="mono" id="kg_bhb">0.00</td><td>kg</td><td class="muted">N×{W3}</td></tr>
+
+              <tr><td><b>鉄筋合計</b></td><td class="mono" id="kg_total">0.00</td><td>kg</td><td class="muted">上の合計</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          ※ 縦筋の40dは自動で加算します（D13なら 0.52m）。横筋は40d加算しません。
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+  // 単位重量(kg/m) 一般値
+  const unitWeight = {10:0.560, 13:0.995, 16:1.58, 19:2.25, 22:3.04, 25:3.98};
+
+  const $ = (id) => document.getElementById(id);
+  const ceil = (x) => Math.ceil(x);
+
+  // 空欄は0扱い（入力途中でも結果が消えない）
+  function num(id){
+    const v = parseFloat($(id).value);
+    return Number.isFinite(v) ? v : 0;
+  }
+
+  function fmt(x, d=3){ return (Number.isFinite(x) ? Number(x).toFixed(d) : "0.000"); }
+  function fmt4(x){ return (Number.isFinite(x) ? Number(x).toFixed(4) : "0.0000"); }
+  function fmtKg(x){ return (Number.isFinite(x) ? Number(x).toFixed(2) : "0.00"); }
+
+  function countBarsByPitch(span_m, pitch_mm){
+    const p = pitch_mm/1000;
+    if(!(p>0) || !(span_m>0)) return 0;
+    return ceil(span_m/p);
+  }
+
+  function calc(){
+    const H1=num("H1"), H2=num("H2"), H3=num("H3"), H4=num("H4"), H5=num("H5");
+    const W1=num("W1"), W3=num("W3"), W4=num("W4");
+    const L=num("L");
+
+    // Lだけ必須（0以下は計算不能）
+    if(!(L>0)){
+      // 0で埋める（消えないように）
+      ["k_exc","k_conc"].forEach(id=>$(id).textContent="0.000");
+      $("k_rebar").textContent="0.00";
+      ["r_exc","r_conc"].forEach(id=>$(id).textContent="0.0000");
+      ["r_bed","r_stone","r_blnd","r_form","r_back","r_spoil"].forEach(id=>$(id).textContent="0.000");
+      ["kg_vf","kg_vr","kg_bvt","kg_bvb","kg_hf","kg_hr","kg_bht","kg_bhb","kg_total"].forEach(id=>$(id).textContent="0.00");
+      return;
+    }
+
+    const m = 0.5; // 固定（背面のみ 1:0.5）
+    const Htot = H1 + H2;
+
+    // 土工（前面垂直・背面のみ法面）
+    const D = H1 + H2 + H3 + H4;     // 天端→砕石下端
+    const e = 0.25 * D;              // 固定
+    $("e").value = e.toFixed(3);
+
+    const B = W4 + 2*e;
+    const Aexc = B*D + 0.5*m*(D*D);  // 背面のみ：三角形1枚
+    const Vexc = Aexc * L;
+    const Abed = B * L;
+
+    // 地業・均し
+    const Vstone = W4 * H4 * L;
+    const Vblnd  = W4 * H3 * L;
+
+    // コンクリ（底版は台形扱い）
+    const Abase = W3 * (H2 + H5) / 2;
+    const Awall = H1 * W1;
+    const Vconc = (Abase + Awall) * L;
+
+    // 埋戻し/残土
+    const Vreplace = Vstone + Vblnd + Vconc;
+    const Vback = Vexc - Vreplace;
+    const Vspoil = Vreplace;
+
+    // 型枠（壁前後のみ）
+    const Aform = (2*Htot) * L;
+
+    // ---- 鉄筋：8系統 ----
+    function kgVertical_auto40d(prefix, baseLen){
+      const dmm = num("d_"+prefix);      // 例: 13
+      const pmm = num("p_"+prefix);
+      const w = unitWeight[dmm] ?? 0;
+      const N = countBarsByPitch(L, pmm);
+      const Lbar = baseLen + 0.04*dmm;   // 40d(m)
+      return N * Lbar * w;
+    }
+
+    function kgWallHorizontal(prefix){
+      const dmm = num("d_"+prefix);
+      const pmm = num("p_"+prefix);
+      const w = unitWeight[dmm] ?? 0;
+      const p = pmm/1000;
+      const Nh = (p>0) ? (ceil(Htot/p)+1) : 0;
+      const Lbar = L;                    // 40dなし
+      return Nh * Lbar * w;
+    }
+
+    function kgBaseHorizontal(prefix){
+      const dmm = num("d_"+prefix);
+      const pmm = num("p_"+prefix);
+      const w = unitWeight[dmm] ?? 0;
+      const N = countBarsByPitch(L, pmm);
+      const Lbar = W3;                   // 40dなし
+      return N * Lbar * w;
+    }
+
+    // 縦（4）
+    const kg_vf  = kgVertical_auto40d("vf",  Htot);
+    const kg_vr  = kgVertical_auto40d("vr",  Htot); // 立上り縦後筋：前筋と同一式
+    const kg_bvt = kgVertical_auto40d("bvt", W3);
+    const kg_bvb = kgVertical_auto40d("bvb", W3);
+
+    // 横（4）
+    const kg_hf  = kgWallHorizontal("hf");
+    const kg_hr  = kgWallHorizontal("hr");
+    const kg_bht = kgBaseHorizontal("bht");
+    const kg_bhb = kgBaseHorizontal("bhb");
+
+    const KgTotal = kg_vf+kg_vr+kg_bvt+kg_bvb+kg_hf+kg_hr+kg_bht+kg_bhb;
+
+    // KPI
+    $("k_exc").textContent  = fmt(Vexc, 3);
+    $("k_conc").textContent = fmt(Vconc, 3);
+    $("k_rebar").textContent= fmtKg(KgTotal);
+
+    // table
+    $("r_exc").textContent   = fmt4(Vexc);
+    $("r_bed").textContent   = fmt(Abed, 3);
+    $("r_stone").textContent = fmt(Vstone, 3);
+    $("r_blnd").textContent  = fmt(Vblnd, 3);
+    $("r_conc").textContent  = fmt(Vconc, 3);
+    $("r_form").textContent  = fmt(Aform, 3);
+    $("r_back").textContent  = fmt(Vback, 3);
+    $("r_spoil").textContent = fmt(Vspoil, 3);
+
+    $("kg_vf").textContent   = fmtKg(kg_vf);
+    $("kg_vr").textContent   = fmtKg(kg_vr);
+    $("kg_bvt").textContent  = fmtKg(kg_bvt);
+    $("kg_bvb").textContent  = fmtKg(kg_bvb);
+    $("kg_hf").textContent   = fmtKg(kg_hf);
+    $("kg_hr").textContent   = fmtKg(kg_hr);
+    $("kg_bht").textContent  = fmtKg(kg_bht);
+    $("kg_bhb").textContent  = fmtKg(kg_bhb);
+    $("kg_total").textContent= fmtKg(KgTotal);
+  }
+
+  // 計算ボタン
+  $("calcBtn").addEventListener("click", calc);
+
+  // サンプル
+  $("fillSampleBtn").addEventListener("click", () => {
+    $("H1").value=1.35; $("H2").value=0.15; $("H3").value=0.15; $("H4").value=0.15; $("H5").value=0.15;
+    $("W1").value=0.15; $("W3").value=1.0;  $("W4").value=1.2;
+    $("L").value=10;
+
+    const setSel=(id,val)=>$(id).value=val;
+    ["d_vf","d_vr","d_bvt","d_bvb","d_hf","d_hr","d_bht","d_bhb"].forEach(id=>setSel(id,13));
+    ["p_vf","p_vr","p_bvt","p_bvb","p_hf","p_hr","p_bht","p_bhb"].forEach(id=>$(id).value=200);
+
+    calc();
+  });
+
+  // リセット（結果は0表示にする＝消えない）
+  $("resetBtn").addEventListener("click", () => {
+    ["H1","H2","H3","H4","H5","W1","W3","W4"].forEach(id => $(id).value="");
+    $("L").value=10;
+
+    ["d_vf","d_vr","d_bvt","d_bvb","d_hf","d_hr","d_bht","d_bhb"].forEach(id => $(id).value=13);
+    ["p_vf","p_vr","p_bvt","p_bvb","p_hf","p_hr","p_bht","p_bhb"].forEach(id => $(id).value=200);
+
+    calc();
+  });
+
+  // リアルタイム再計算（軽いデバウンス）
+  (function(){
+    let raf=0;
+    const schedule=()=>{
+      if(raf) cancelAnimationFrame(raf);
+      raf=requestAnimationFrame(()=>{ raf=0; calc(); });
+    };
+    document.querySelectorAll('input, select').forEach(el=>{
+      el.addEventListener('input', schedule);
+      el.addEventListener('change', schedule);
+    });
+  })();
+
+  // Enterで次の項目へ（readonlyは除外）
+  (function(){
+    const focusables = Array.from(
+      document.querySelectorAll('input:not([readonly]):not([disabled]), select:not([disabled])')
+    );
+    focusables.forEach((el, idx) => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const next = focusables[idx + 1];
+          if (next) {
+            next.focus();
+            if (next.select) next.select();
+          }
+        }
+      });
+    });
+  })();
+
+
+  // 入力欄 ⇔ 図面（寸法記号）ハイライト
+  (function(){
+    const clear = () => document.querySelectorAll('.dimText.active').forEach(el=>el.classList.remove('active'));
+    const activate = (cls) => {
+      clear();
+      if(!cls) return;
+      document.querySelectorAll('.'+cls).forEach(el=>el.classList.add('active'));
+    };
+    document.querySelectorAll('input[data-dim]').forEach(inp=>{
+      inp.addEventListener('focus', ()=>activate(inp.dataset.dim));
+      inp.addEventListener('click', ()=>activate(inp.dataset.dim));
+      inp.addEventListener('blur', ()=>clear());
+    });
+  })();
+
+  window.addEventListener("load", calc);
+</script>
+
+
+<script>
+(function(){
+  // 入力ID -> 断面図内の文字（SVG）セレクタ（既存のクラスを使用）
+  const map = {
+    H1: '.dim-h1',
+    H2: '.dim-h2',
+    H3: '.dim-h3',
+    H4: '.dim-h4',
+    H5: '.dim-h5',
+    W1: '.dim-w1',
+    W3: '.dim-w3',
+    W4: '.dim-w4'
+  };
+
+  Object.entries(map).forEach(([inputId, sel]) => {
+    const input = document.getElementById(inputId);
+    const dim = document.querySelector(sel);
+    if(!input || !dim) return;
+
+    const on = () => dim.classList.add('active');
+    const off = () => dim.classList.remove('active');
+
+    input.addEventListener('focus', on);
+    input.addEventListener('blur', off);
+
+    // クリックでフォーカスした場合も確実に反映
+    input.addEventListener('click', on);
+  });
+
+  // 鉄筋入力エリア以外をクリックしたら解除
+  document.addEventListener('click', (e)=>{
+    const t = e.target;
+    if(!(t instanceof Element)) return;
+    if(t.closest('.rebar-area')) return; // 鉄筋エリア内は維持
+    clear();
+  });
+
+})();
+</script>
+
+
+<script>
+(function(){
+  // 対象の鉄筋グループ（SVG側：data-labelで特定）
+  const groups = {
+    vf: 'rb_vf',        // 立上り縦前筋
+    vr: 'rb_vbu',       // 立上り縦後筋（裏筋）
+    bvt:'rb_st_top',    // 基礎縦上筋（上端主筋）
+    bvb:'rb_sb_main',   // 基礎縦下筋（下端主筋：フォーカス時のみ表示）
+    hf: 'rb_hf',              // 立上り横前筋（前だけ）
+    hr: 'rb_hb',              // 立上り横後筋（後ろだけ）
+     // 立上り横後筋（図は前後まとめ）
+    bht:'rb_st_dots',   // 基礎横上筋（上端配力）
+    bhb:'rb_sb_dots'    // 基礎横下筋（下端配力）
+  };
+
+  const clear = () => {
+    Object.values(groups).forEach(gid=>{
+      const g = document.getElementById(gid);
+      if(g) g.classList.remove('rb-active');
+    });
+  };
+
+  const activate = (key) => {
+    clear();
+    const gid = groups[key];
+    const g = gid ? document.getElementById(gid) : null;
+    if(g) g.classList.add('rb-active');
+  };
+
+    // 入力ID -> 強調キー（8系統を個別に）
+  const map = {
+    d_vf:'vf',  p_vf:'vf',
+    d_vr:'vr',  p_vr:'vr',
+    d_bvt:'bvt',p_bvt:'bvt',
+    d_bvb:'bvb',p_bvb:'bvb',
+    d_hf:'hf',  p_hf:'hf',
+    d_hr:'hr',  p_hr:'hr',
+    d_bht:'bht',p_bht:'bht',
+    d_bhb:'bhb',p_bhb:'bhb'
+  };
+
+  // ▼重要：selectを開いた瞬間のblur等で「消える」ことがあるため、
+  // 個別のblurでは解除しない。代わりに「鉄筋入力以外にフォーカスが移ったら解除」方式にする。
+  const isRebarInput = (el) => el && el.id && Object.prototype.hasOwnProperty.call(map, el.id);
+
+  const sync = (el) => {
+    if(isRebarInput(el)) activate(map[el.id]);
+    else clear();
+  };
+
+  document.addEventListener('focusin', (e)=>sync(e.target));
+  document.addEventListener('click', (e)=>sync(e.target));
+})();
+</script>
+
+
+<script>
+(function(){
+  const KEY = "Lgatasekisan_backless_single_v1";
+
+  const $ = (id)=>document.getElementById(id);
+
+  const elToggle = $("toggleBackless");
+  const els = {
+    d_vr: $("d_vr"),
+    p_vr: $("p_vr"),
+    d_hr: $("d_hr"),
+    p_hr: $("p_hr"),
+    d_bht: $("d_bht"),
+    p_bht: $("p_bht"),
+    d_bvt: $("d_bvt"),
+    p_bvt: $("p_bvt"),
+  };
+
+  function setDisabled(disabled){
+    ["d_vr","p_vr","d_hr","p_hr","d_bht","p_bht","d_bvt","p_bvt"].forEach(k=>{
+      const el = els[k];
+      if(!el) return;
+      el.disabled = disabled;
+      // 見た目
+      el.classList.toggle("inputDisabled", disabled);
+      // label側も薄く（親div全体）
+      const wrap = el.closest("div");
+      if(wrap) wrap.classList.toggle("inputDisabled", disabled);
+    });
+  }
+
+  function saveCurrent(){
+    // 解除時に戻せるよう保存（初回のみ）
+    ["p_vr","p_hr","p_bht","p_bvt"].forEach(k=>{
+      const el = els[k];
+      if(!el) return;
+      if(el.dataset.prev === undefined) el.dataset.prev = el.value;
+    });
+    ["d_vr","d_hr","d_bht","d_bvt"].forEach(k=>{
+      const el = els[k];
+      if(!el) return;
+      if(el.dataset.prev === undefined) el.dataset.prev = el.value;
+    });
+  }
+
+  function restore(){
+    ["d_vr","p_vr","d_hr","p_hr","d_bht","p_bht","d_bvt","p_bvt"].forEach(k=>{
+      const el = els[k];
+      if(!el) return;
+      if(el.dataset.prev !== undefined){
+        el.value = el.dataset.prev;
+      }
+      delete el.dataset.prev;
+    });
+  }
+
+  function apply(on){
+    if(on){
+      saveCurrent();
+      if(els.p_vr) els.p_vr.value = "0";
+      if(els.p_hr)  els.p_hr.value  = "0";
+      if(els.p_bht) els.p_bht.value = "0";
+      if(els.p_bvt) els.p_bvt.value = "0";
+      setDisabled(true);
+    }else{
+      setDisabled(false);
+      restore();
+    }
+    // 再計算
+    if(typeof calc === "function") calc();
+  }
+
+  if(elToggle){
+    // 初期化
+    const saved = localStorage.getItem(KEY);
+    elToggle.checked = saved === "1";
+    apply(elToggle.checked);
+
+    elToggle.addEventListener("change", ()=>{
+      localStorage.setItem(KEY, elToggle.checked ? "1" : "0");
+      apply(elToggle.checked);
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
+
+
+
